@@ -368,14 +368,47 @@ char *get_proType_str(char *str, BYTE type)
 	return str;
 }
 
+void initFile() {
+	int i;
+	char* key = "0123456789ABCDEFGHIJKLMNOPQRSTUVMWYZabcdefghijklmnopqrstuvwxyz";
+	char buffer[VIRTUAL_MEMORY_SIZE + 1];
+	errno_t err;
+
+	err = fopen_s(&ptr_auxMen, AUXILIARY_MEMORY, "w+");
+	for(i=0; i<VIRTUAL_MEMORY_SIZE-3; i++)
+	{
+		buffer[i] = key[rand() % 62];
+	}
+	buffer[VIRTUAL_MEMORY_SIZE-3] = 'y';
+	buffer[VIRTUAL_MEMORY_SIZE-2] = 'm';
+	buffer[VIRTUAL_MEMORY_SIZE-1] = 'c';
+	buffer[VIRTUAL_MEMORY_SIZE] = '\0';
+
+	//随机生成256位字符串
+	fwrite(buffer, sizeof(BYTE), VIRTUAL_MEMORY_SIZE, ptr_auxMem);
+	/*
+	size_t fwrite(const void* buffer, size_t size, size_t count, FILE* stream)
+	*/
+	printf("系统提示：初始化辅存模拟文件完成\n");
+	fclose(ptr_auxMem);
+}
+
+
 int main(int argc, char* argv[])
 {
 	char c;
+
+	//使用w+创建文件
+	initFile();
+
+	//r+不具备创建文件的能力
+	/*
 	if (!(ptr_auxMem = fopen(AUXILIARY_MEMORY, "r+")))
 	{
 		do_error(ERROR_FILE_OPEN_FAILED);
 		exit(1);
 	}
+	*/
 	
 	do_init();
 	do_print_info();
