@@ -374,7 +374,7 @@ void initFile() {
 	char buffer[VIRTUAL_MEMORY_SIZE + 1];
 	errno_t err;
 
-	err = fopen_s(&ptr_auxMen, AUXILIARY_MEMORY, "w+");
+	err = fopen_s(&ptr_auxMem, AUXILIARY_MEMORY, "w+");
 	for(i=0; i<VIRTUAL_MEMORY_SIZE-3; i++)
 	{
 		buffer[i] = key[rand() % 62];
