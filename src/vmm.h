@@ -4,7 +4,7 @@
 #ifndef DEBUG
 #define DEBUG
 #endif
-#undef DEBUG
+//#undef DEBUG
 
 
 /* 模拟辅存的文件路径 */
