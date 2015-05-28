@@ -34,7 +34,7 @@ void do_init()
 		/* 使用随机数设置该页的保护类型 */
 		pageTable[i].proType = random() % 7 + 1;
 		/* 设置该页对应的辅存地址 */
-		pageTable[i].auxAddr = i * PAGE_SIZE * 2;
+		pageTable[i].auxAddr = i * PAGE_SIZE;
 	}
 	for (j = 0; j < BLOCK_SUM; j++)
 	{
@@ -306,39 +306,6 @@ void do_error(ERROR_CODE code)
 	}
 }
 
-/* 产生访存请求 */
-void do_request()
-{
-	/* 随机产生请求地址 */
-	ptr_memAccReq->virAddr = random() % VIRTUAL_MEMORY_SIZE;
-	/* 随机产生请求类型 */
-	switch (random() % 3)
-	{
-		case 0: //读请求
-		{
-			ptr_memAccReq->reqType = REQUEST_READ;
-			printf("产生请求：\n地址：%lu\t类型：读取\n", ptr_memAccReq->virAddr);
-			break;
-		}
-		case 1: //写请求
-		{
-			ptr_memAccReq->reqType = REQUEST_WRITE;
-			/* 随机产生待写入的值 */
-			ptr_memAccReq->value = random() % 0xFFu;
-			printf("产生请求：\n地址：%lu\t类型：写入\t值：%02X\n", ptr_memAccReq->virAddr, ptr_memAccReq->value);
-			break;
-		}
-		case 2:
-		{
-			ptr_memAccReq->reqType = REQUEST_EXECUTE;
-			printf("产生请求：\n地址：%lu\t类型：执行\n", ptr_memAccReq->virAddr);
-			break;
-		}
-		default:
-			break;
-	}	
-}
-
 /* 打印页表 */
 void do_print_info()
 {
@@ -372,7 +339,8 @@ char *get_proType_str(char *str, BYTE type)
 	return str;
 }
 
-void init_file() {
+void init_file()
+{
 	int i;
 	char* key = "0123456789ABCDEFGHIJKLMNOPQRSTUVMWYZabcdefghijklmnopqrstuvwxyz";
 	char buffer[VIRTUAL_MEMORY_SIZE + 1];
@@ -396,45 +364,48 @@ void init_file() {
 	/*
 	size_t fwrite(const void* buffer, size_t size, size_t count, FILE* stream)
 	*/
+	fclose(ptr_auxMem);
 	printf("系统提示：初始化辅存模拟文件完成\n");
+	
 }
 
-
+void init_fifo()
+{
+	/* 删除FIFO */
+	unlink("/tmp/req");
+	
+	if (mkfifo("/tmp/req", 0666) < 0)
+	{
+		puts("mkfifo failed");
+		exit(1);
+	}
+	
+	/* 在阻塞模式下打开FIFO */
+	if ((fifo = open("/tmp/req", O_RDONLY)) < 0)
+	{
+		puts("open fifo failed");
+		exit(1);
+	}
+}
 int main(int argc, char* argv[])
 {
 	char c;
-	//使用w+创建文件
 	init_file();
-
-	//r+不具备创建文件的能力
-	/*
 	if (!(ptr_auxMem = fopen(AUXILIARY_MEMORY, "r+")))
 	{
 		do_error(ERROR_FILE_OPEN_FAILED);
 		exit(1);
 	}
-	*/
 	do_init();
 	do_print_info();
 	ptr_memAccReq = (Ptr_MemoryAccessRequest) malloc(REQ_LEN);
-	if(mkfifo("/tmp/req",0666)<0)
-	{
-		puts("mkfifo failed");
-		return 0;
-	}
-	
-	/* 在非阻塞模式下打开FIFO */
-	if((fifo=open("/tmp/req",O_RDONLY))<0)
-	{
-		puts("open fifo failed");
-		return 0;
-	}
+	//创建FIFO
+	init_fifo();
 	/* 在循环中模拟访存请求与处理过程 */
 	while (TRUE)
 	{
-		//do_request();
 		do_response();
-		if(read(fifo,ptr_memAccReq,REQ_LEN)<0) {
+		if (read(fifo,ptr_memAccReq,REQ_LEN)<0) {
 			puts("read fifo failed");
 			return 0;
 		}
@@ -448,9 +419,8 @@ int main(int argc, char* argv[])
 			break;
 		while (c != '\n')
 			c = getchar();
-		sleep(233);
 	}
-
+	close(fifo);
 	if (fclose(ptr_auxMem) == EOF)
 	{
 		do_error(ERROR_FILE_CLOSE_FAILED);
