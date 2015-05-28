@@ -1,6 +1,10 @@
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 #include "vmm.h"
 
 /* 页表 */
@@ -13,8 +17,8 @@ FILE *ptr_auxMem;
 BOOL blockStatus[BLOCK_SUM];
 /* 访存请求 */
 Ptr_MemoryAccessRequest ptr_memAccReq;
-
-
+/* FIFO file descriptor */
+int fifo;
 
 /* 初始化环境 */
 void do_init()
@@ -195,7 +199,7 @@ void do_page_in(Ptr_PageTableItem ptr_pageTabIt, unsigned int blockNum)
 	if (fseek(ptr_auxMem, ptr_pageTabIt->auxAddr, SEEK_SET) < 0)
 	{
 #ifdef DEBUG
-		printf("DEBUG: auxAddr=%u\tftell=%u\n", ptr_pageTabIt->auxAddr, ftell(ptr_auxMem));
+		printf("DEBUG: auxAddr=%lu\tftell=%lu\n", ptr_pageTabIt->auxAddr, ftell(ptr_auxMem));
 #endif
 		do_error(ERROR_FILE_SEEK_FAILED);
 		exit(1);
@@ -204,7 +208,7 @@ void do_page_in(Ptr_PageTableItem ptr_pageTabIt, unsigned int blockNum)
 		sizeof(BYTE), PAGE_SIZE, ptr_auxMem)) < PAGE_SIZE)
 	{
 #ifdef DEBUG
-		printf("DEBUG: auxAddr=%u\tftell=%u\n", ptr_pageTabIt->auxAddr, ftell(ptr_auxMem));
+		printf("DEBUG: auxAddr=%lu\tftell=%lu\n", ptr_pageTabIt->auxAddr, ftell(ptr_auxMem));
 		printf("DEBUG: blockNum=%u\treadNum=%u\n", blockNum, readNum);
 		printf("DEGUB: feof=%d\tferror=%d\n", feof(ptr_auxMem), ferror(ptr_auxMem));
 #endif
@@ -221,7 +225,7 @@ void do_page_out(Ptr_PageTableItem ptr_pageTabIt)
 	if (fseek(ptr_auxMem, ptr_pageTabIt->auxAddr, SEEK_SET) < 0)
 	{
 #ifdef DEBUG
-		printf("DEBUG: auxAddr=%u\tftell=%u\n", ptr_pageTabIt, ftell(ptr_auxMem));
+		printf("DEBUG: auxAddr=%p\tftell=%ld\n", ptr_pageTabIt, ftell(ptr_auxMem));
 #endif
 		do_error(ERROR_FILE_SEEK_FAILED);
 		exit(1);
@@ -230,7 +234,7 @@ void do_page_out(Ptr_PageTableItem ptr_pageTabIt)
 		sizeof(BYTE), PAGE_SIZE, ptr_auxMem)) < PAGE_SIZE)
 	{
 #ifdef DEBUG
-		printf("DEBUG: auxAddr=%u\tftell=%u\n", ptr_pageTabIt->auxAddr, ftell(ptr_auxMem));
+		printf("DEBUG: auxAddr=%lu\tftell=%ld\n", ptr_pageTabIt->auxAddr, ftell(ptr_auxMem));
 		printf("DEBUG: writeNum=%u\n", writeNum);
 		printf("DEGUB: feof=%d\tferror=%d\n", feof(ptr_auxMem), ferror(ptr_auxMem));
 #endif
@@ -368,12 +372,16 @@ char *get_proType_str(char *str, BYTE type)
 	return str;
 }
 
-void initFile() {
+void init_file() {
 	int i;
 	char* key = "0123456789ABCDEFGHIJKLMNOPQRSTUVMWYZabcdefghijklmnopqrstuvwxyz";
 	char buffer[VIRTUAL_MEMORY_SIZE + 1];
 
-	fopen(AUXILIARY_MEMORY, "w+");
+	if (!(ptr_auxMem = fopen(AUXILIARY_MEMORY, "w+")))
+	{
+		do_error(ERROR_FILE_OPEN_FAILED);
+		exit(1);
+	}
 	for(i=0; i<VIRTUAL_MEMORY_SIZE-3; i++)
 	{
 		buffer[i] = key[rand() % 62];
@@ -389,16 +397,14 @@ void initFile() {
 	size_t fwrite(const void* buffer, size_t size, size_t count, FILE* stream)
 	*/
 	printf("系统提示：初始化辅存模拟文件完成\n");
-	fclose(ptr_auxMem);
 }
 
 
 int main(int argc, char* argv[])
 {
 	char c;
-
 	//使用w+创建文件
-	initFile();
+	init_file();
 
 	//r+不具备创建文件的能力
 	/*
@@ -408,15 +414,30 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	*/
-	
 	do_init();
 	do_print_info();
-	ptr_memAccReq = (Ptr_MemoryAccessRequest) malloc(sizeof(MemoryAccessRequest));
+	ptr_memAccReq = (Ptr_MemoryAccessRequest) malloc(REQ_LEN);
+	if(mkfifo("/tmp/req",0666)<0)
+	{
+		puts("mkfifo failed");
+		return 0;
+	}
+	
+	/* 在非阻塞模式下打开FIFO */
+	if((fifo=open("/tmp/req",O_RDONLY))<0)
+	{
+		puts("open fifo failed");
+		return 0;
+	}
 	/* 在循环中模拟访存请求与处理过程 */
 	while (TRUE)
 	{
-		do_request();
+		//do_request();
 		do_response();
+		if(read(fifo,ptr_memAccReq,REQ_LEN)<0) {
+			puts("read fifo failed");
+			return 0;
+		}
 		printf("按Y打印页表，按其他键不打印...\n");
 		if ((c = getchar()) == 'y' || c == 'Y')
 			do_print_info();
@@ -427,7 +448,7 @@ int main(int argc, char* argv[])
 			break;
 		while (c != '\n')
 			c = getchar();
-		//sleep(5000);
+		sleep(233);
 	}
 
 	if (fclose(ptr_auxMem) == EOF)
