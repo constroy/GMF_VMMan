@@ -67,6 +67,7 @@ typedef struct
 	BYTE value; //写请求的值
 } MemoryAccessRequest, *Ptr_MemoryAccessRequest;
 
+#define REQ_LEN sizeof (MemoryAccessRequest)
 
 /* 访存错误代码 */
 typedef enum {
