@@ -30,6 +30,8 @@
 /* 总物理块数 */
 #define BLOCK_SUM (ACTUAL_MEMORY_SIZE / PAGE_SIZE)
 
+/* maximum process number */
+#define MAX_PID 256
 
 /* 可读标识位 */
 #define READABLE 0x01u
@@ -85,6 +87,7 @@ typedef struct
 
 /* 访存错误代码 */
 typedef enum {
+	ERROR_NO_AUTHORUTY, //进程无权限
 	ERROR_READ_DENY, //该页不可读
 	ERROR_WRITE_DENY, //该页不可写
 	ERROR_EXECUTE_DENY, //该页不可执行
