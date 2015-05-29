@@ -473,7 +473,6 @@ void init_fifo()
 int main(int argc, char* argv[])
 {
 	char c;
-	int count;
 	init_file();
 	if (!(ptr_auxMem = fopen(AUXILIARY_MEMORY, "r+")))
 	{
@@ -488,20 +487,10 @@ int main(int argc, char* argv[])
 	/* 在循环中模拟访存请求与处理过程 */
 	while (TRUE)
 	{
-		count = read(fifo,ptr_memAccReq,REQ_LEN);
-		if (count == 0)
-		{
-			continue;
-		}
-		else if (count < 0)
-		{
-			puts("read fifo failed");
-			return 0;
-		}
-		else if (count == REQ_LEN)
+		//printf("count: %d\n",count);
+		if (read(fifo,ptr_memAccReq,REQ_LEN) == REQ_LEN)
 		{
 			do_response();
-			
 			printf("按Y打印页表，按其他键不打印...\n");
 			if ((c = getchar()) == 'y' || c == 'Y')
 				do_print_info();
