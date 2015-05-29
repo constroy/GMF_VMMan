@@ -10,10 +10,6 @@
 /* 页表 */
 PageTableItem pageTable[PAGE_SUM];
 
-
-//二级页表大小
-#define SECOND_TABLE_SIZE PAGE_SUM / FIRST_TABLE_SIZE
-
 //二级页表
 PageTableItem bi_pageTable[FIRST_TABLE_SIZE][SECOND_TABLE_SIZE];
 
@@ -62,23 +58,19 @@ void do_init()
 
 	for (j = 0; j < BLOCK_SUM; j++)
 	{
-		/* 随机选择一些物理块进行页面装入 */
 		if (random() % 2 == 0)
 		{
-
 			firstNum = j / SECOND_TABLE_SIZE;
 			secondNum = j % SECOND_TABLE_SIZE;
-
-			// do_page_in(&pageTable[j], j);
-			// pageTable[j].blockNum = j;
-			// pageTable[j].filled = TRUE;
 			do_page_in(&bi_pageTable[firstNum][secondNum], j);
 			bi_pageTable[firstNum][secondNum].blockNum = j;
 			bi_pageTable[firstNum][secondNum].filled = TRUE;
 			blockStatus[j] = TRUE;
 		}
 		else
+		{
 			blockStatus[j] = FALSE;
+		}
 	}
 }
 
