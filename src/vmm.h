@@ -31,7 +31,7 @@
 #define BLOCK_SUM (ACTUAL_MEMORY_SIZE / PAGE_SIZE)
 
 /* maximum process number */
-#define MAX_PID 256
+#define MAX_PROC_NUM 2
 
 /* 可读标识位 */
 #define READABLE 0x01u
