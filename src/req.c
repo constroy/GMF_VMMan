@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 #include "vmm.h"
 
 /* 访存请求 */
