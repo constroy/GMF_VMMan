@@ -47,7 +47,7 @@ BOOL do_request()
 		/* 随机产生请求地址 */
 		ptr_memAccReq->virAddr = random() % VIRTUAL_MEMORY_SIZE;
 		/* 随机产生请求类型 */
-		ptr_memAccReq->PID = random()%65536;
+		ptr_memAccReq->PID = random() % (MAX_PID / 4 * 5);
 		/* 随机产生请求进程号 */
 		switch (random() % 3)
 		{
@@ -79,10 +79,6 @@ BOOL do_request()
 	{
 		printf("输入请求格式,进程号-地址-模式(r,w,e)(-写入值)\n");
 		scanf("%u-%d-%c",&pid,&add,&req_type);
-		if(add>=65536){
-		printf("请求PID号超界,请小于%d\n",65536);
-		return FALSE;		
-		}
 		if(add>=VIRTUAL_MEMORY_SIZE){
 		printf("请求地址超界,请小于%d\n",VIRTUAL_MEMORY_SIZE);
 		return FALSE;		
