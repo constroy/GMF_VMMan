@@ -94,8 +94,9 @@ void do_response()
 	printf("第%u页\n", firstNum * SECOND_TABLE_SIZE + secondNum);
 
 	/* 获取对应页表项 */
-//	ptr_pageTabIt = &pageTable[pageNum];							//在页表中获取页表项
-
+//	ptr_pageTabIt = &pageTable[pageNum];
+							
+	//在页表中获取页表项
 	ptr_pageTabIt = &bi_pageTable[firstNum][secondNum];
 	
 	/* 根据特征位决定是否产生缺页中断 */
@@ -104,7 +105,9 @@ void do_response()
 		do_page_fault(ptr_pageTabIt);
 	}
 	
-	actAddr = ptr_pageTabIt->blockNum * PAGE_SIZE + offAddr;		//实地址
+	actAddr = ptr_pageTabIt->blockNum * PAGE_SIZE + offAddr;
+		
+	//实地址
 	printf("实地址为：%u\n", actAddr);
 
 	/*每进行一次请求执行均更新页面老化算法访问位*/
@@ -247,9 +250,9 @@ void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 	}
 	printf("选择第%u页进行替换\n", page);
 
-		// convert page to firstNum & secondNum
-		firstNum = page / SECOND_TABLE_SIZE;
-		secondNum = page % SECOND_TABLE_SIZE;
+	// convert page to firstNum & secondNum
+	firstNum = page / SECOND_TABLE_SIZE;
+	secondNum = page % SECOND_TABLE_SIZE;
 
 	// if (pageTable[page].edited)
 	// {
@@ -259,15 +262,15 @@ void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 	// }
 	// pageTable[page].filled = FALSE;
 	// pageTable[page].count = 0;
-		if(bi_pageTable[firstNum][secondNum].edited)
-		{
-			/* 页面内容有修改，需要写回至辅存 */
-			printf("该页内容有修改，写回至辅存\n");
-			do_page_out(&bi_pageTable[firstNum][secondNum]);
-		}
-		bi_pageTable[firstNum][secondNum].filled = FALSE;
-		bi_pageTable[firstNum][secondNum].count = 0;
 
+	if(bi_pageTable[firstNum][secondNum].edited)
+	{
+		/* 页面内容有修改，需要写回至辅存 */
+		printf("该页内容有修改，写回至辅存\n");
+		do_page_out(&bi_pageTable[firstNum][secondNum]);
+	}
+	bi_pageTable[firstNum][secondNum].filled = FALSE;
+	bi_pageTable[firstNum][secondNum].count = 0;
 
 	/* 读辅存内容，写入到实存 */
 	// do_page_in(ptr_pageTabIt, pageTable[page].blockNum);
@@ -354,8 +357,7 @@ void do_pageAging(Ptr_PageTableItem ptr_pageTabIt) {
 		ptr_pageTabIt->counter[k] = 0;
 	}
 
-	printf("页面替换成功\n");
-		
+	printf("页面替换成功\n");		
 }
 
 /* 将辅存内容写入实存 */
@@ -483,7 +485,7 @@ void do_print_info()
 	unsigned int i;
 	char str[4];
 	int firstNum, secondNum;
-	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问位\t访问计数\n");
+	printf("页号\t进程号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问位\t访问计数\n");
 	for (i = 0; i < PAGE_SUM; i++)
 	{
 		firstNum = i / SECOND_TABLE_SIZE;
@@ -533,6 +535,7 @@ void do_print_shicun()
 		printf("\n");
 	}
 }
+
 /* 打印辅存 */
 void do_print_fucun()
 {
