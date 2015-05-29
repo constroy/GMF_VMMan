@@ -56,7 +56,7 @@ void do_init()
 	for(i = 0; i < PAGE_SUM; i++)
 	{
 		firstNum = i / SECOND_TABLE_SIZE;
-		secondNum = i % SECOND_TABLE_SIZE;	
+		secondNum = i % SECOND_TABLE_SIZE;
 
 		bi_pageTable[firstNum][secondNum].pageNum = i;
 		bi_pageTable[firstNum][secondNum].filled = FALSE;
@@ -94,7 +94,7 @@ void do_response()
 	unsigned int pageNum, offAddr, firstNum, secondNum;
 	unsigned int actAddr;
 	unsigned int i;	
-	unsigned int j, k;	
+	int j;	
 
 	
 	/* 检查地址是否越界 */
@@ -140,7 +140,9 @@ void do_response()
 
 	/*每进行一次请求执行均更新页面老化算法访问位*/
 	for(i = 0; i < PAGE_SUM; i++) {
-		pageTable[i].R = 0;
+		firstNum = i / SECOND_TABLE_SIZE;
+		secondNum = i % SECOND_TABLE_SIZE;
+		bi_pageTable[firstNum][secondNum].R = 0;
 	}
 	
 	/* 检查页面访问权限并处理访存请求 */
@@ -202,16 +204,18 @@ void do_response()
 		}
 	}
 	
-	printf("successful 1");
+	//printf("successful 1");fflush(stdout);
 	/*每进行一次请求执行均更新页面老化算法访问计数位*/
 	for(i = 0; i < PAGE_SUM; i++) {
+		firstNum = i / SECOND_TABLE_SIZE;
+		secondNum = i % SECOND_TABLE_SIZE;
 		for(j = 6; j >= 0; j--) {
-			pageTable[i].counter[j+1] = pageTable[i].counter[j];
+			bi_pageTable[firstNum][secondNum].counter[j+1] = pageTable[i].counter[j];
 		}
-		printf("successful 2");
-		pageTable[i].counter[0] = pageTable[i].R;
+		//printf("successful 2");fflush(stdout);
+		bi_pageTable[firstNum][secondNum].counter[0] = bi_pageTable[firstNum][secondNum].R;
 	}
-	printf("successful 3");	
+	//printf("successful 3");fflush(stdout);
 }
 
 /* 处理缺页中断 */
@@ -492,11 +496,7 @@ void do_print_info()
 		bi_pageTable[firstNum][secondNum].edited, 
 		get_proType_str(str, bi_pageTable[firstNum][secondNum].proType),
 		bi_pageTable[firstNum][secondNum].count,
-		bi_pageTable[firstNum][secondNum].auxAddr,
-		bi_pageTable[firstNum][secondNum].counter[0], bi_pageTable[firstNum][secondNum].counter[1], 
-		bi_pageTable[firstNum][secondNum].counter[2], bi_pageTable[firstNum][secondNum].counter[3],
-		bi_pageTable[firstNum][secondNum].counter[4], bi_pageTable[firstNum][secondNum].counter[5], 
-		bi_pageTable[firstNum][secondNum].counter[6], bi_pageTable[firstNum][secondNum].counter[7]);
+		bi_pageTable[firstNum][secondNum].auxAddr);
 	}
 	printf("\n");
 }
