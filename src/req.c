@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
@@ -14,12 +15,11 @@ int fifo;
 
 int main()
 {
+	ptr_memAccReq = (Ptr_MemoryAccessRequest) malloc(REQ_LEN);
+	if(!do_request())
+		return 0;
 	if ((fifo=open("/tmp/req",O_WRONLY)) < 0)
 		puts("req open fifo failed");
-	ptr_memAccReq = (Ptr_MemoryAccessRequest) malloc(REQ_LEN);
-	srandom(time(NULL));
-	if(!do_request())
-		return 0 ;
 	if (write(fifo, ptr_memAccReq, REQ_LEN) < 0)
 		puts("req write failed");
 	return 0;
@@ -37,6 +37,7 @@ BOOL do_request()
 	/* 随机产生请求地址 */
 	ptr_memAccReq->virAddr = random() % VIRTUAL_MEMORY_SIZE;
 	/* 随机产生请求类型 */
+	srandom(time(NULL));
 	switch (random() % 3)
 	{
 		case 0: //读请求
