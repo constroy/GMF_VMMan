@@ -16,12 +16,14 @@ int main()
 {
 	if ((fifo=open("/tmp/req",O_WRONLY)) < 0)
 		puts("req open fifo failed");
+	while(TRUE){
 	ptr_memAccReq = (Ptr_MemoryAccessRequest) malloc(REQ_LEN);
 	srandom(time(NULL));
 	if(!do_request())
-		return 0 ;
+		continue;
 	if (write(fifo, ptr_memAccReq, REQ_LEN) < 0)
 		puts("req write failed");
+	}
 	return 0;
 }
 
@@ -31,7 +33,7 @@ BOOL do_request()
 	char type[80];
 	int  add,req_value;
 	char req_type; 
-	printf("选择输入请求模式,random/nonrandom\n");
+	printf("\n选择输入请求模式,random/nonrandom\n");
 	scanf("%s",type);
 	if(strcmp(type,"random")==0){
 	/* 随机产生请求地址 */
@@ -64,7 +66,7 @@ BOOL do_request()
 	}
 	}
 	else if(strcmp(type,"nonrandom")==0){
-		printf("输入请求格式,地址-模式 (写入值)\n");
+		printf("输入请求格式,地址-模式(r,w,e)(-写入值)\n");
 		scanf("%d-%c",&add,&req_type);
 		if(add>=VIRTUAL_MEMORY_SIZE){
 		printf("请求地址超界,请小于%d\n",VIRTUAL_MEMORY_SIZE);
