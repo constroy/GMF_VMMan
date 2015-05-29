@@ -40,6 +40,13 @@ void do_init()
 		bi_pageTable[firstNum][secondNum].filled = FALSE;
 		bi_pageTable[firstNum][secondNum].edited = FALSE;
 		bi_pageTable[firstNum][secondNum].count = 0;
+
+		//页面老化算法页表项参数初始化
+		bi_pageTable[firstNum][secondNum].R = 0;
+		for(k = 0; k < 8; k++) {
+			bi_pageTable[firstNum][secondNum].counter[k] = 0;
+		}
+
 		//使用随机数设置该页的保护类型
 		bi_pageTable[firstNum][secondNum].proType = random() % 7 + 1;
 		//设置该页对应的辅存地址 
@@ -109,9 +116,6 @@ void do_response()
 		secondNum = i % SECOND_TABLE_SIZE;
 
 		bi_pageTable[firstNum][secondNum].R = 0;
-		// pageTable[i].R = 0;
-
-
 	}
 	
 	/* 检查页面访问权限并处理访存请求 */
@@ -172,9 +176,7 @@ void do_response()
 			return;
 		}
 	}
-	
 
-	//printf("successful 1");fflush(stdout);
 	/*每进行一次请求执行均更新页面老化算法访问计数位*/
 	for(i = 0; i < PAGE_SUM; i++) {
 		firstNum = i / SECOND_TABLE_SIZE;
@@ -182,11 +184,8 @@ void do_response()
 		for(j = 6; j >= 0; j--) {
 			bi_pageTable[firstNum][secondNum].counter[j+1] = pageTable[i].counter[j];
 		}
-		//printf("successful 2");fflush(stdout);
 		bi_pageTable[firstNum][secondNum].counter[0] = bi_pageTable[firstNum][secondNum].R;
 	}
-	//printf("successful 3");fflush(stdout);
-
 }
 
 /* 处理缺页中断 */
@@ -297,28 +296,43 @@ void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
 				for(j = 0; j < 8; j++) {
 					min[j] = pageTable[i].counter[j]; 
 				}
+				page = i;
 				break;
 			}
 		}
-		page = i;
 	}
 	printf("选择第%u页进行替换\n", page);
 
-	if (pageTable[page].edited)
+// convert page to firstNum & secondNum
+		firstNum = page / SECOND_TABLE_SIZE;
+		secondNum = page % SECOND_TABLE_SIZE;
+
+	// if (pageTable[page].edited)
+	// {
+	// 	/* 页面内容有修改，需要写回至辅存 */
+	// 	printf("该页内容有修改，写回至辅存\n");
+	// 	do_page_out(&pageTable[page]);
+	// }
+	// pageTable[page].filled = FALSE;
+	// pageTable[page].count = 0;
+
+	if(bi_pageTable[firstNum][secondNum].edited)
 	{
 		/* 页面内容有修改，需要写回至辅存 */
 		printf("该页内容有修改，写回至辅存\n");
-		do_page_out(&pageTable[page]);
+		do_page_out(&bi_pageTable[firstNum][secondNum]);
 	}
-	pageTable[page].filled = FALSE;
-	pageTable[page].count = 0;
+	bi_pageTable[firstNum][secondNum].filled = FALSE;
+	bi_pageTable[firstNum][secondNum].count = 0;
 
 
 	/* 读辅存内容，写入到实存 */
-	do_page_in(ptr_pageTabIt, pageTable[page].blockNum);
+	// do_page_in(ptr_pageTabIt, pageTable[page].blockNum);
+	do_page_in(ptr_pageTabIt, bi_pageTable[firstNum][secondNum].blockNum);
 	
 	/* 更新页表内容 */
-	ptr_pageTabIt->blockNum = pageTable[page].blockNum;
+	// ptr_pageTabIt->blockNum = pageTable[page].blockNum;
+	ptr_pageTabIt->blockNum = bi_pageTable[firstNum][secondNum].blockNum;
 	ptr_pageTabIt->filled = TRUE;
 	ptr_pageTabIt->edited = FALSE;
 	ptr_pageTabIt->count = 0;
@@ -453,7 +467,7 @@ void do_print_info()
 	unsigned int i;
 	char str[4];
 	int firstNum, secondNum;
-	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问计数\n");
+	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问位\t访问计数\n");
 	for (i = 0; i < PAGE_SUM; i++)
 	{
 		firstNum = i / SECOND_TABLE_SIZE;
@@ -461,14 +475,18 @@ void do_print_info()
 		// printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\n", i, pageTable[i].blockNum, pageTable[i].filled, 
 		// 	pageTable[i].edited, get_proType_str(str, pageTable[i].proType), 
 		// 	pageTable[i].count, pageTable[i].auxAddr);
-		printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\n", i, 
+		printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\t%d\t%d%d%d%d%d%d%d%d\n", i, 
 		bi_pageTable[firstNum][secondNum].blockNum, 
 		bi_pageTable[firstNum][secondNum].filled,
 		bi_pageTable[firstNum][secondNum].edited, 
 		get_proType_str(str, bi_pageTable[firstNum][secondNum].proType),
 		bi_pageTable[firstNum][secondNum].count,
-		bi_pageTable[firstNum][secondNum].auxAddr);
-	}
+		bi_pageTable[firstNum][secondNum].auxAddr,
+		bi_pageTable[firstNum][secondNum].R,
+		bi_pageTable[firstNum][secondNum].counter[0],bi_pageTable[firstNum][secondNum].counter[1],
+		bi_pageTable[firstNum][secondNum].counter[2],bi_pageTable[firstNum][secondNum].counter[3],
+		bi_pageTable[firstNum][secondNum].counter[4],bi_pageTable[firstNum][secondNum].counter[5],
+		bi_pageTable[firstNum][secondNum].counter[6],bi_pageTable[firstNum][secondNum].counter[7]};
 	printf("\n");
 }
 
