@@ -83,7 +83,7 @@ void do_response()
 	//convert pageTable to bi_pageTable
 	for(i = 0, k = 0; i < FIRST_TABLE_SIZE; i++)
 	{
-		for (int j = 0; j < SECOND_TABLE_SIZE; ++j)
+		for (j = 0; j < SECOND_TABLE_SIZE; ++j)
 		{
 			bi_pageTable[i][j] = pageTable[k++];
 		}
