@@ -81,7 +81,7 @@ void do_response()
 //	printf("页号为：%u\t页内偏移为：%u\n", pageNum, offAddr);
 
 	//convert pageTable to bi_pageTable
-	for(i = 0, k = 0; i < FIRST_PAGE_SIZE; i++)
+	for(i = 0, k = 0; i < FIRST_TABLE_SIZE; i++)
 	{
 		for (int j = 0; j < SECOND_TABLE_SIZE; ++j)
 		{
