@@ -140,9 +140,14 @@ void do_response()
 
 	/*每进行一次请求执行均更新页面老化算法访问位*/
 	for(i = 0; i < PAGE_SUM; i++) {
+
 		firstNum = i / SECOND_TABLE_SIZE;
 		secondNum = i % SECOND_TABLE_SIZE;
+
 		bi_pageTable[firstNum][secondNum].R = 0;
+		// pageTable[i].R = 0;
+
+
 	}
 	
 	/* 检查页面访问权限并处理访存请求 */
@@ -204,6 +209,7 @@ void do_response()
 		}
 	}
 	
+
 	//printf("successful 1");fflush(stdout);
 	/*每进行一次请求执行均更新页面老化算法访问计数位*/
 	for(i = 0; i < PAGE_SUM; i++) {
@@ -216,6 +222,7 @@ void do_response()
 		bi_pageTable[firstNum][secondNum].counter[0] = bi_pageTable[firstNum][secondNum].R;
 	}
 	//printf("successful 3");fflush(stdout);
+
 }
 
 /* 处理缺页中断 */
