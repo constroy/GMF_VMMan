@@ -483,7 +483,7 @@ void do_print_info()
 	unsigned int i;
 	char str[4];
 	int firstNum, secondNum;
-	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问位\t访问计数\n");
+	printf("页号\t进程\t块号\t装入\t修改\t保护\t计数\t辅存\t访问位\t访问计数\n");
 	for (i = 0; i < PAGE_SUM; i++)
 	{
 		firstNum = i / SECOND_TABLE_SIZE;
