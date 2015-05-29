@@ -47,7 +47,7 @@ BOOL do_request()
 		/* 随机产生请求地址 */
 		ptr_memAccReq->virAddr = random() % VIRTUAL_MEMORY_SIZE;
 		/* 随机产生请求类型 */
-		ptr_memAccReq->PID = random() % (MAX_PID / 4 * 5);
+		ptr_memAccReq->PID = random() % MAX_PROC_NUM;
 		/* 随机产生请求进程号 */
 		switch (random() % 3)
 		{
