@@ -31,28 +31,6 @@ void do_init()
 	int firstNum, secondNum;
 	srandom(time(NULL));
 
-/*	for(p = 0, i = 0; p < FIRST_TABLE_SIZE; p++)
-	{
-		for(t = 0; t < SECOND_TABLE_SIZE; t++)
-		{
-			bi_pageTable[p][t].pageNum = i;
-			bi_pageTable[p][t].filled = FALSE;
-			bi_pageTable[p][t].edited = FALSE;
-			bi_pageTable[p][t].count = 0;
-
-			//页面老化算法参数初始化
-			pageTable[p][t].R = 0;
-			for(k = 0; k < 8; k++) {
-				pageTable[p][t].counter[k] = 0;
-			}
-			//使用随机数设置该页的保护类型
-			bi_pageTable[p][t].proType = random() % 7 + 1;
-			//设置该页对应的辅存地址 
-			bi_pageTable[p][t].auxAddr = i * PAGE_SIZE;
-			i++;
-		}
-	}*/
-
 	for(i = 0; i < PAGE_SUM; i++)
 	{
 		firstNum = i / SECOND_TABLE_SIZE;
@@ -103,20 +81,6 @@ void do_response()
 		do_error(ERROR_OVER_BOUNDARY);
 		return;
 	}
-	
-	/* 计算页号和页内偏移值 */
-//	pageNum = ptr_memAccReq->virAddr / PAGE_SIZE;
-//	offAddr = ptr_memAccReq->virAddr % PAGE_SIZE;
-//	printf("页号为：%u\t页内偏移为：%u\n", pageNum, offAddr);
-
-	// convert pageTable to bi_pageTable
-	// for(i = 0, k = 0; i < FIRST_TABLE_SIZE; i++)
-	// {
-	// 	for (j = 0; j < SECOND_TABLE_SIZE; ++j)
-	// 	{
-	// 		bi_pageTable[i][j] = pageTable[k++];
-	// 	}
-	// }
 
 	// 计算一级页表页号,二级页表页号和页内偏移值 
 	firstNum = ptr_memAccReq->virAddr / PAGE_SIZE / SECOND_TABLE_SIZE;
