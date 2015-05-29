@@ -217,8 +217,8 @@ void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 		}
 	}
 	/* 没有空闲物理块，进行页面替换 */
-	do_LFU(ptr_pageTabIt);
-	//do_yemianlaohua(ptr_pageTabIt);
+	//do_LFU(ptr_pageTabIt);
+	do_pageAging(ptr_pageTabIt);
 }
 
 /* 根据LFU算法进行页面替换 */
@@ -281,7 +281,7 @@ void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 }
 
 /* 根据页面老化算法进行页面替换 */
-void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
+void do_pageAging(Ptr_PageTableItem ptr_pageTabIt) {
 	
 	unsigned int min[8], i, j, k, page;
 	int firstNum, secondNum;
