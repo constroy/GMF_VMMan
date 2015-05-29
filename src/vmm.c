@@ -562,8 +562,8 @@ void init_fifo()
 		exit(1);
 	}
 	
-	/* 在阻塞模式下打开FIFO */
-	if ((fifo = open("/tmp/req", O_RDONLY)) < 0)
+	/* 在非阻塞模式下打开FIFO */
+	if ((fifo = open("/tmp/req", O_RDONLY|O_NONBLOCK)) < 0)
 	{
 		puts("open fifo failed");
 		exit(1);
@@ -586,21 +586,21 @@ int main(int argc, char* argv[])
 	/* 在循环中模拟访存请求与处理过程 */
 	while (TRUE)
 	{
-		do_response();
-		if (read(fifo,ptr_memAccReq,REQ_LEN)<0) {
-			puts("read fifo failed");
-			return 0;
+		//printf("count: %d\n",count);
+		if (read(fifo,ptr_memAccReq,REQ_LEN) == REQ_LEN)
+		{
+			do_response();
+			printf("按Y打印页表，按其他键不打印...\n");
+			if ((c = getchar()) == 'y' || c == 'Y')
+				do_print_info();
+			while (c != '\n')
+				c = getchar();
+			printf("按X退出程序，按其他键继续...\n");
+			if ((c = getchar()) == 'x' || c == 'X')
+				break;
+			while (c != '\n')
+				c = getchar();
 		}
-		printf("按Y打印页表，按其他键不打印...\n");
-		if ((c = getchar()) == 'y' || c == 'Y')
-			do_print_info();
-		while (c != '\n')
-			c = getchar();
-		printf("按X退出程序，按其他键继续...\n");
-		if ((c = getchar()) == 'x' || c == 'X')
-			break;
-		while (c != '\n')
-			c = getchar();
 	}
 	close(fifo);
 	if (fclose(ptr_auxMem) == EOF)
