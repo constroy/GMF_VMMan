@@ -284,6 +284,7 @@ void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
 	
 	unsigned int min[8], i, j, k, page;
+	int firstNum, secondNum;
 	for(k = 0; k < 8; k++) {
 		min[k] = 1;
 	}
@@ -303,9 +304,9 @@ void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
 	}
 	printf("选择第%u页进行替换\n", page);
 
-// convert page to firstNum & secondNum
-		firstNum = page / SECOND_TABLE_SIZE;
-		secondNum = page % SECOND_TABLE_SIZE;
+	// convert page to firstNum & secondNum
+	firstNum = page / SECOND_TABLE_SIZE;
+	secondNum = page % SECOND_TABLE_SIZE;
 
 	// if (pageTable[page].edited)
 	// {
@@ -486,7 +487,8 @@ void do_print_info()
 		bi_pageTable[firstNum][secondNum].counter[0],bi_pageTable[firstNum][secondNum].counter[1],
 		bi_pageTable[firstNum][secondNum].counter[2],bi_pageTable[firstNum][secondNum].counter[3],
 		bi_pageTable[firstNum][secondNum].counter[4],bi_pageTable[firstNum][secondNum].counter[5],
-		bi_pageTable[firstNum][secondNum].counter[6],bi_pageTable[firstNum][secondNum].counter[7]};
+		bi_pageTable[firstNum][secondNum].counter[6],bi_pageTable[firstNum][secondNum].counter[7]);
+	}
 	printf("\n");
 }
 
