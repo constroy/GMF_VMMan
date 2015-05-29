@@ -18,6 +18,9 @@
 //二级页表大小
 #define SECOND_TABLE_SIZE (PAGE_SUM / FIRST_TABLE_SIZE)
 
+//二级页表大小
+#define SECOND_TABLE_SIZE (PAGE_SUM / FIRST_TABLE_SIZE)
+
 /* 虚存空间大小（字节） */
 #define VIRTUAL_MEMORY_SIZE (64 * 4)
 /* 实存空间大小（字节） */ 
@@ -57,6 +60,9 @@ typedef struct
 	BOOL edited; //页面修改标识
 	unsigned long auxAddr; //外存地址
 	unsigned long count; //页面使用计数器
+	//页面老化算法参数
+	unsigned int R; //页面老化算法访问位
+	unsigned int counter[8]; //页面老化算法计数器
 } PageTableItem, *Ptr_PageTableItem;
 
 /* 访存请求类型 */
@@ -102,6 +108,9 @@ void do_page_fault(Ptr_PageTableItem);
 
 /* LFU页面替换 */
 void do_LFU(Ptr_PageTableItem);
+
+/*页面老化算法页面替换*/
+void do_yemianlaohua(Ptr_PageTableItem);
 
 /* 装入页面 */
 void do_page_in(Ptr_PageTableItem, unsigned in);
