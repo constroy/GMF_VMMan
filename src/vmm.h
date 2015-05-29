@@ -84,7 +84,7 @@ typedef enum {
 } ERROR_CODE;
 
 /* 产生访存请求 */
-void do_request();
+BOOL do_request();
 
 /* 响应访存请求 */
 void do_response();
