@@ -12,6 +12,10 @@
 
 /* 页面大小（字节）*/
 #define PAGE_SIZE 4
+
+//一级页表大小
+#define FIRST_TABLE_SIZE 4
+
 /* 虚存空间大小（字节） */
 #define VIRTUAL_MEMORY_SIZE (64 * 4)
 /* 实存空间大小（字节） */ 
