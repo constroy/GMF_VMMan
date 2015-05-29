@@ -91,6 +91,7 @@ void do_response()
 	secondNum = ptr_memAccReq->virAddr / PAGE_SIZE % SECOND_TABLE_SIZE;
 	offAddr = ptr_memAccReq->virAddr % PAGE_SIZE;
 	printf("一级页表页号为：%u\t二级页表页号为：%u\t页内偏移为：%u\n", firstNum, secondNum, offAddr);
+	printf("第%u页\n", firstNum * SECOND_TABLE_SIZE + secondNum);
 
 	/* 获取对应页表项 */
 //	ptr_pageTabIt = &pageTable[pageNum];							//在页表中获取页表项
@@ -219,7 +220,7 @@ void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 	}
 	/* 没有空闲物理块，进行页面替换 */
 	//do_LFU(ptr_pageTabIt);
-	do_yemianlaohua(ptr_pageTabIt);
+	do_pageAging(ptr_pageTabIt);
 }
 
 /* 根据LFU算法进行页面替换 */
@@ -282,7 +283,7 @@ void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 }
 
 /* 根据页面老化算法进行页面替换 */
-void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
+void do_pageAging(Ptr_PageTableItem ptr_pageTabIt) {
 	
 	unsigned int min[8], i, j, k, page;
 	int firstNum, secondNum;
@@ -293,11 +294,17 @@ void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
 
 	for (i = 0, page = 0; i < PAGE_SUM; i++)
 	{
-		for(k = 0; k < 8; k++) {
+		firstNum = i / SECOND_TABLE_SIZE;
+		secondNum = i % SECOND_TABLE_SIZE;
+
+		for(k = 0; k < 8; k++)
+		{
 			firstNum = i / SECOND_TABLE_SIZE;
 			secondNum = i % SECOND_TABLE_SIZE;
-			if (bi_pageTable[firstNum][secondNum].counter[k] < min[k]) {
-				for(j = 0; j < 8; j++) {
+			if (bi_pageTable[firstNum][secondNum].counter[k] < min[k])
+			{
+				for(j = 0; j < 8; j++)
+				{
 					min[j] = bi_pageTable[firstNum][secondNum].counter[j]; 
 				}
 				page = i;
