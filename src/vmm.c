@@ -32,11 +32,10 @@ int fifo;
 void do_init()
 {
 	int i, j;
-	int p, t;
 	int firstNum, secondNum;
 	srandom(time(NULL));
 
-	for(p = 0, i = 0; p < FIRST_TABLE_SIZE; p++)
+/*	for(p = 0, i = 0; p < FIRST_TABLE_SIZE; p++)
 	{
 		for(t = 0; t < SECOND_TABLE_SIZE; t++)
 		{
@@ -50,6 +49,21 @@ void do_init()
 			bi_pageTable[p][t].auxAddr = i * PAGE_SIZE;
 			i++;
 		}
+	}*/
+
+	for(i = 0; i < PAGE_SUM; i++)
+	{
+		firstNum = i / SECOND_TABLE_SIZE;
+		secondNum = i % SECOND_TABLE_SIZE;	
+
+		bi_pageTable[firstNum][secondNum].pageNum = i;
+		bi_pageTable[firstNum][secondNum].filled = FALSE;
+		bi_pageTable[firstNum][secondNum].edited = FALSE;
+		bi_pageTable[firstNum][secondNum].count = 0;
+		//使用随机数设置该页的保护类型
+		bi_pageTable[firstNum][secondNum].proType = random() % 7 + 1;
+		//设置该页对应的辅存地址 
+		bi_pageTable[firstNum][secondNum].auxAddr = i * PAGE_SIZE;
 	}
 /*		pageTable[i].pageNum = i;
 		pageTable[i].filled = FALSE;
