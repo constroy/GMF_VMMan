@@ -9,6 +9,14 @@
 
 /* 页表 */
 PageTableItem pageTable[PAGE_SUM];
+
+
+//二级页表大小
+#define SECOND_TABLE_SIZE PAGE_SUM / FIRST_TABLE_SIZE
+
+//二级页表
+PageTableItem bi_pageTable[FIRST_TABLE_SIZE][SECOND_TABLE_SIZE];
+
 /* 实存空间 */
 BYTE actMem[ACTUAL_MEMORY_SIZE];
 /* 用文件模拟辅存空间 */
@@ -24,33 +32,47 @@ int fifo;
 void do_init()
 {
 	int i, j, k;
+	int p, t;
+	int firstNum, secondNum;
 	srandom(time(NULL));
-	for (i = 0; i < PAGE_SUM; i++)
+
+	for(p = 0, i = 0; p < FIRST_TABLE_SIZE; p++)
 	{
-		pageTable[i].pageNum = i;
-		pageTable[i].filled = FALSE;
-		pageTable[i].edited = FALSE;
-		pageTable[i].count = 0;
+		for(t = 0; t < SECOND_TABLE_SIZE; t++)
+		{
+			bi_pageTable[p][t].pageNum = i;
+			bi_pageTable[p][t].filled = FALSE;
+			bi_pageTable[p][t].edited = FALSE;
+			bi_pageTable[p][t].count = 0;
 
-		//页面老化算法参数初始化
-		pageTable[i].R = 0;
-		for(k = 0; k < 8; k++) {
-			pageTable[i].counter[k] = 0;
+			//页面老化算法参数初始化
+			pageTable[p][t].R = 0;
+			for(k = 0; k < 8; k++) {
+				pageTable[p][t].counter[k] = 0;
+			}
+			//使用随机数设置该页的保护类型
+			bi_pageTable[p][t].proType = random() % 7 + 1;
+			//设置该页对应的辅存地址 
+			bi_pageTable[p][t].auxAddr = i * PAGE_SIZE;
+			i++;
 		}
-
-		/* 使用随机数设置该页的保护类型 */
-		pageTable[i].proType = random() % 7 + 1;
-		/* 设置该页对应的辅存地址 */
-		pageTable[i].auxAddr = i * PAGE_SIZE;
 	}
+
 	for (j = 0; j < BLOCK_SUM; j++)
 	{
 		/* 随机选择一些物理块进行页面装入 */
 		if (random() % 2 == 0)
 		{
-			do_page_in(&pageTable[j], j);
-			pageTable[j].blockNum = j;
-			pageTable[j].filled = TRUE;
+
+			firstNum = j / SECOND_TABLE_SIZE;
+			secondNum = j % SECOND_TABLE_SIZE;
+
+			// do_page_in(&pageTable[j], j);
+			// pageTable[j].blockNum = j;
+			// pageTable[j].filled = TRUE;
+			do_page_in(&bi_pageTable[firstNum][secondNum], j);
+			bi_pageTable[firstNum][secondNum].blockNum = j;
+			bi_pageTable[firstNum][secondNum].filled = TRUE;
 			blockStatus[j] = TRUE;
 		}
 		else
@@ -63,11 +85,12 @@ void do_init()
 void do_response()
 {
 	Ptr_PageTableItem ptr_pageTabIt;
-	unsigned int pageNum, offAddr;
+	unsigned int pageNum, offAddr, firstNum, secondNum;
 	unsigned int actAddr;
 	unsigned int i;	
-	unsigned int j;	
+	unsigned int j, k;	
 
+	
 	/* 检查地址是否越界 */
 	if (ptr_memAccReq->virAddr < 0 || ptr_memAccReq->virAddr >= VIRTUAL_MEMORY_SIZE)
 	{
@@ -76,12 +99,29 @@ void do_response()
 	}
 	
 	/* 计算页号和页内偏移值 */
-	pageNum = ptr_memAccReq->virAddr / PAGE_SIZE;
+//	pageNum = ptr_memAccReq->virAddr / PAGE_SIZE;
+//	offAddr = ptr_memAccReq->virAddr % PAGE_SIZE;
+//	printf("页号为：%u\t页内偏移为：%u\n", pageNum, offAddr);
+
+	// convert pageTable to bi_pageTable
+	// for(i = 0, k = 0; i < FIRST_TABLE_SIZE; i++)
+	// {
+	// 	for (j = 0; j < SECOND_TABLE_SIZE; ++j)
+	// 	{
+	// 		bi_pageTable[i][j] = pageTable[k++];
+	// 	}
+	// }
+
+	// 计算一级页表页号,二级页表页号和页内偏移值 
+	firstNum = ptr_memAccReq->virAddr / PAGE_SIZE / SECOND_TABLE_SIZE;
+	secondNum = ptr_memAccReq->virAddr / PAGE_SIZE % SECOND_TABLE_SIZE;
 	offAddr = ptr_memAccReq->virAddr % PAGE_SIZE;
-	printf("页号为：%u\t页内偏移为：%u\n", pageNum, offAddr);
+	printf("一级页表页号为：%u\t二级页表页号为：%u\t页内偏移为：%u\n", firstNum, secondNum, offAddr);
 
 	/* 获取对应页表项 */
-	ptr_pageTabIt = &pageTable[pageNum];
+//	ptr_pageTabIt = &pageTable[pageNum];							//在页表中获取页表项
+
+	ptr_pageTabIt = &bi_pageTable[firstNum][secondNum];
 	
 	/* 根据特征位决定是否产生缺页中断 */
 	if (!ptr_pageTabIt->filled)
@@ -89,7 +129,7 @@ void do_response()
 		do_page_fault(ptr_pageTabIt);
 	}
 	
-	actAddr = ptr_pageTabIt->blockNum * PAGE_SIZE + offAddr;
+	actAddr = ptr_pageTabIt->blockNum * PAGE_SIZE + offAddr;		//实地址
 	printf("实地址为：%u\n", actAddr);
 
 	/*每进行一次请求执行均更新页面老化算法访问位*/
@@ -205,31 +245,55 @@ void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 {
 	unsigned int i, min, page;
+	int firstNum, secondNum;
 	printf("没有空闲物理块，开始进行LFU页面替换...\n");
 	for (i = 0, min = 0xFFFFFFFF, page = 0; i < PAGE_SUM; i++)
 	{
-		if (pageTable[i].count < min)
+		firstNum = i / SECOND_TABLE_SIZE;
+		secondNum = i % SECOND_TABLE_SIZE;
+		// if (pageTable[i].count < min)
+		// {
+		// 	min = pageTable[i].count;
+		// 	page = i;
+		// }
+		if(bi_pageTable[firstNum][secondNum].count < min)
 		{
-			min = pageTable[i].count;
+			min = bi_pageTable[firstNum][secondNum].count;
 			page = i;
 		}
+
 	}
 	printf("选择第%u页进行替换\n", page);
-	if (pageTable[page].edited)
-	{
-		/* 页面内容有修改，需要写回至辅存 */
-		printf("该页内容有修改，写回至辅存\n");
-		do_page_out(&pageTable[page]);
-	}
-	pageTable[page].filled = FALSE;
-	pageTable[page].count = 0;
+
+		// convert page to firstNum & secondNum
+		firstNum = page / SECOND_TABLE_SIZE;
+		secondNum = page % SECOND_TABLE_SIZE;
+
+	// if (pageTable[page].edited)
+	// {
+	// 	/* 页面内容有修改，需要写回至辅存 */
+	// 	printf("该页内容有修改，写回至辅存\n");
+	// 	do_page_out(&pageTable[page]);
+	// }
+	// pageTable[page].filled = FALSE;
+	// pageTable[page].count = 0;
+		if(bi_pageTable[firstNum][secondNum].edited)
+		{
+			/* 页面内容有修改，需要写回至辅存 */
+			printf("该页内容有修改，写回至辅存\n");
+			do_page_out(&bi_pageTable[firstNum][secondNum]);
+		}
+		bi_pageTable[firstNum][secondNum].filled = FALSE;
+		bi_pageTable[firstNum][secondNum].count = 0;
 
 
 	/* 读辅存内容，写入到实存 */
-	do_page_in(ptr_pageTabIt, pageTable[page].blockNum);
+	// do_page_in(ptr_pageTabIt, pageTable[page].blockNum);
+	do_page_in(ptr_pageTabIt, bi_pageTable[firstNum][secondNum].blockNum);
 	
 	/* 更新页表内容 */
-	ptr_pageTabIt->blockNum = pageTable[page].blockNum;
+	// ptr_pageTabIt->blockNum = pageTable[page].blockNum;
+	ptr_pageTabIt->blockNum = bi_pageTable[firstNum][secondNum].blockNum;
 	ptr_pageTabIt->filled = TRUE;
 	ptr_pageTabIt->edited = FALSE;
 	ptr_pageTabIt->count = 0;
@@ -407,6 +471,7 @@ void do_print_info()
 {
 	unsigned int i;
 	char str[4];
+<<<<<<< HEAD
 	printf("\n页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问计数\n");
 	for (i = 0; i < PAGE_SUM; i++)
 	{
@@ -415,6 +480,24 @@ void do_print_info()
 			pageTable[i].count, pageTable[i].auxAddr, 
 			pageTable[i].counter[0], pageTable[i].counter[1], pageTable[i].counter[2], pageTable[i].counter[3],
 			pageTable[i].counter[4], pageTable[i].counter[5], pageTable[i].counter[6], pageTable[i].counter[7]);
+=======
+	int firstNum, secondNum;
+	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\n");
+	for (i = 0; i < PAGE_SUM; i++)
+	{
+		firstNum = i / SECOND_TABLE_SIZE;
+		secondNum = i % SECOND_TABLE_SIZE;
+		// printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\n", i, pageTable[i].blockNum, pageTable[i].filled, 
+		// 	pageTable[i].edited, get_proType_str(str, pageTable[i].proType), 
+		// 	pageTable[i].count, pageTable[i].auxAddr);
+		printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\n", i, 
+		bi_pageTable[firstNum][secondNum].blockNum, 
+		bi_pageTable[firstNum][secondNum].filled,
+		bi_pageTable[firstNum][secondNum].edited, 
+		get_proType_str(str, bi_pageTable[firstNum][secondNum].proType),
+		bi_pageTable[firstNum][secondNum].count,
+		bi_pageTable[firstNum][secondNum].auxAddr);
+>>>>>>> d570cde73610ea7832a07d991cfefc55e3a52cb2
 	}
 	printf("\n");
 }
