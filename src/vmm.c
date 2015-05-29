@@ -471,18 +471,8 @@ void do_print_info()
 {
 	unsigned int i;
 	char str[4];
-<<<<<<< HEAD
-	printf("\n页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问计数\n");
-	for (i = 0; i < PAGE_SUM; i++)
-	{
-		printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\t%d%d%d%d%d%d%d%d\n", i, pageTable[i].blockNum, pageTable[i].filled, 
-			pageTable[i].edited, get_proType_str(str, pageTable[i].proType), 
-			pageTable[i].count, pageTable[i].auxAddr, 
-			pageTable[i].counter[0], pageTable[i].counter[1], pageTable[i].counter[2], pageTable[i].counter[3],
-			pageTable[i].counter[4], pageTable[i].counter[5], pageTable[i].counter[6], pageTable[i].counter[7]);
-=======
 	int firstNum, secondNum;
-	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\n");
+	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问计数\n");
 	for (i = 0; i < PAGE_SUM; i++)
 	{
 		firstNum = i / SECOND_TABLE_SIZE;
@@ -496,8 +486,11 @@ void do_print_info()
 		bi_pageTable[firstNum][secondNum].edited, 
 		get_proType_str(str, bi_pageTable[firstNum][secondNum].proType),
 		bi_pageTable[firstNum][secondNum].count,
-		bi_pageTable[firstNum][secondNum].auxAddr);
->>>>>>> d570cde73610ea7832a07d991cfefc55e3a52cb2
+		bi_pageTable[firstNum][secondNum].auxAddr,
+		bi_pageTable[firstNum][secondNum].counter[0], bi_pageTable[firstNum][secondNum].counter[1], 
+		bi_pageTable[firstNum][secondNum].counter[2], bi_pageTable[firstNum][secondNum].counter[3],
+		bi_pageTable[firstNum][secondNum].counter[4], bi_pageTable[firstNum][secondNum].counter[5], 
+		bi_pageTable[firstNum][secondNum].counter[6], bi_pageTable[firstNum][secondNum].counter[7]);
 	}
 	printf("\n");
 }
