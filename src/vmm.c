@@ -9,6 +9,14 @@
 
 /* 页表 */
 PageTableItem pageTable[PAGE_SUM];
+
+
+//二级页表大小
+#define SECOND_TABLE_SIZE PAGE_SUM / FIRST_TABLE_SIZE
+
+//二级页表
+PageTableItem bi_pageTable[FIRST_TABLE_SIZE][SECOND_TABLE_SIZE];
+
 /* 实存空间 */
 BYTE actMem[ACTUAL_MEMORY_SIZE];
 /* 用文件模拟辅存空间 */
@@ -56,8 +64,9 @@ void do_init()
 void do_response()
 {
 	Ptr_PageTableItem ptr_pageTabIt;
-	unsigned int pageNum, offAddr;
+	unsigned int pageNum, offAddr, firstNum, secondNum;
 	unsigned int actAddr;
+	int i, j, k;
 	
 	/* 检查地址是否越界 */
 	if (ptr_memAccReq->virAddr < 0 || ptr_memAccReq->virAddr >= VIRTUAL_MEMORY_SIZE)
@@ -67,12 +76,29 @@ void do_response()
 	}
 	
 	/* 计算页号和页内偏移值 */
-	pageNum = ptr_memAccReq->virAddr / PAGE_SIZE;
+//	pageNum = ptr_memAccReq->virAddr / PAGE_SIZE;
+//	offAddr = ptr_memAccReq->virAddr % PAGE_SIZE;
+//	printf("页号为：%u\t页内偏移为：%u\n", pageNum, offAddr);
+
+	//convert pageTable to bi_pageTable
+	for(i = 0, k = 0; i < FIRST_PAGE_SIZE; i++)
+	{
+		for (int j = 0; j < SECOND_TABLE_SIZE; ++j)
+		{
+			bi_pageTable[i][j] = pageTable[k++];
+		}
+	}
+
+	// 计算一级页表页号,二级页表页号和页内偏移值 
+	firstNum = ptr_memAccReq->virAddr / PAGE_SIZE / SECOND_TABLE_SIZE;
+	secondNum = ptr_memAccReq->virAddr / PAGE_SIZE % SECOND_TABLE_SIZE;
 	offAddr = ptr_memAccReq->virAddr % PAGE_SIZE;
-	printf("页号为：%u\t页内偏移为：%u\n", pageNum, offAddr);
+	printf("一级页表页号为：%u\t二级页表页号为：%u\t页内偏移为：%u\n", firstNum, secondNum, offAddr);
 
 	/* 获取对应页表项 */
-	ptr_pageTabIt = &pageTable[pageNum];
+//	ptr_pageTabIt = &pageTable[pageNum];							//在页表中获取页表项
+
+	ptr_pageTabIt = &bi_pageTable[firstNum][secondNum];
 	
 	/* 根据特征位决定是否产生缺页中断 */
 	if (!ptr_pageTabIt->filled)
@@ -80,7 +106,7 @@ void do_response()
 		do_page_fault(ptr_pageTabIt);
 	}
 	
-	actAddr = ptr_pageTabIt->blockNum * PAGE_SIZE + offAddr;
+	actAddr = ptr_pageTabIt->blockNum * PAGE_SIZE + offAddr;		//实地址
 	printf("实地址为：%u\n", actAddr);
 	
 	/* 检查页面访问权限并处理访存请求 */
