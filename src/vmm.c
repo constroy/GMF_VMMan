@@ -11,9 +11,6 @@
 PageTableItem pageTable[PAGE_SUM];
 
 
-//二级页表大小
-#define SECOND_TABLE_SIZE PAGE_SUM / FIRST_TABLE_SIZE
-
 //二级页表
 PageTableItem bi_pageTable[FIRST_TABLE_SIZE][SECOND_TABLE_SIZE];
 
