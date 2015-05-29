@@ -23,7 +23,7 @@ int fifo;
 /* 初始化环境 */
 void do_init()
 {
-	int i, j;
+	int i, j, k;
 	srandom(time(NULL));
 	for (i = 0; i < PAGE_SUM; i++)
 	{
@@ -31,6 +31,13 @@ void do_init()
 		pageTable[i].filled = FALSE;
 		pageTable[i].edited = FALSE;
 		pageTable[i].count = 0;
+
+		//页面老化算法参数初始化
+		pageTable[i].R = 0;
+		for(k = 0; k < 8; k++) {
+			pageTable[i].counter[k] = 0;
+		}
+
 		/* 使用随机数设置该页的保护类型 */
 		pageTable[i].proType = random() % 7 + 1;
 		/* 设置该页对应的辅存地址 */
@@ -58,7 +65,9 @@ void do_response()
 	Ptr_PageTableItem ptr_pageTabIt;
 	unsigned int pageNum, offAddr;
 	unsigned int actAddr;
-	
+	unsigned int i;	
+	unsigned int j;	
+
 	/* 检查地址是否越界 */
 	if (ptr_memAccReq->virAddr < 0 || ptr_memAccReq->virAddr >= VIRTUAL_MEMORY_SIZE)
 	{
@@ -82,6 +91,11 @@ void do_response()
 	
 	actAddr = ptr_pageTabIt->blockNum * PAGE_SIZE + offAddr;
 	printf("实地址为：%u\n", actAddr);
+
+	/*每进行一次请求执行均更新页面老化算法访问位*/
+	for(i = 0; i < PAGE_SUM; i++) {
+		pageTable[i].R = 0;
+	}
 	
 	/* 检查页面访问权限并处理访存请求 */
 	switch (ptr_memAccReq->reqType)
@@ -94,6 +108,10 @@ void do_response()
 				do_error(ERROR_READ_DENY);
 				return;
 			}
+
+			/*页面老化算法更新访问位及访问计数器*/
+			ptr_pageTabIt->R = 1;
+			
 			/* 读取实存中的内容 */
 			printf("读操作成功：值为%02X\n", actMem[actAddr]);
 			break;
@@ -106,6 +124,10 @@ void do_response()
 				do_error(ERROR_WRITE_DENY);	
 				return;
 			}
+
+			/*页面老化算法更新访问位及访问计数器*/
+			ptr_pageTabIt->R = 1;
+
 			/* 向实存中写入请求的内容 */
 			actMem[actAddr] = ptr_memAccReq->value;
 			ptr_pageTabIt->edited = TRUE;			
@@ -119,7 +141,11 @@ void do_response()
 			{
 				do_error(ERROR_EXECUTE_DENY);
 				return;
-			}			
+			}
+			
+			/*页面老化算法更新访问位及访问计数器*/
+			ptr_pageTabIt->R = 1;
+
 			printf("执行成功\n");
 			break;
 		}
@@ -129,12 +155,23 @@ void do_response()
 			return;
 		}
 	}
+	
+	printf("successful 1");
+	/*每进行一次请求执行均更新页面老化算法访问计数位*/
+	for(i = 0; i < PAGE_SUM; i++) {
+		for(j = 6; j >= 0; j--) {
+			pageTable[i].counter[j+1] = pageTable[i].counter[j];
+		}
+		printf("successful 2");
+		pageTable[i].counter[0] = pageTable[i].R;
+	}
+	printf("successful 3");	
 }
 
 /* 处理缺页中断 */
 void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 {
-	unsigned int i;
+	unsigned int i, k;
 	printf("产生缺页中断，开始进行调页...\n");
 	for (i = 0; i < BLOCK_SUM; i++)
 	{
@@ -148,6 +185,12 @@ void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 			ptr_pageTabIt->filled = TRUE;
 			ptr_pageTabIt->edited = FALSE;
 			ptr_pageTabIt->count = 0;
+
+			//页面老化算法参数更新
+			ptr_pageTabIt->R = 0;
+			for(k = 0; k < 8; k++) {
+				ptr_pageTabIt->counter[k] = 0;
+			}
 			
 			blockStatus[i] = TRUE;
 			return;
@@ -155,6 +198,7 @@ void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 	}
 	/* 没有空闲物理块，进行页面替换 */
 	do_LFU(ptr_pageTabIt);
+	//do_yemianlaohua(ptr_pageTabIt);
 }
 
 /* 根据LFU算法进行页面替换 */
@@ -190,6 +234,58 @@ void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 	ptr_pageTabIt->edited = FALSE;
 	ptr_pageTabIt->count = 0;
 	printf("页面替换成功\n");
+}
+
+/* 根据页面老化算法进行页面替换 */
+void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
+	
+	unsigned int min[8], i, j, k, page;
+	for(k = 0; k < 8; k++) {
+		min[k] = 1;
+	}
+	printf("没有空闲物理块，开始进行页面老化页面替换...\n");
+
+	for (i = 0, page = 0; i < PAGE_SUM; i++)
+	{
+		for(k = 0; k < 8; k++) {
+			if(pageTable[i].counter[k] < min[k]) {
+				for(j = 0; j < 8; j++) {
+					min[j] = pageTable[i].counter[j]; 
+				}
+				break;
+			}
+		}
+		page = i;
+	}
+	printf("选择第%u页进行替换\n", page);
+
+	if (pageTable[page].edited)
+	{
+		/* 页面内容有修改，需要写回至辅存 */
+		printf("该页内容有修改，写回至辅存\n");
+		do_page_out(&pageTable[page]);
+	}
+	pageTable[page].filled = FALSE;
+	pageTable[page].count = 0;
+
+
+	/* 读辅存内容，写入到实存 */
+	do_page_in(ptr_pageTabIt, pageTable[page].blockNum);
+	
+	/* 更新页表内容 */
+	ptr_pageTabIt->blockNum = pageTable[page].blockNum;
+	ptr_pageTabIt->filled = TRUE;
+	ptr_pageTabIt->edited = FALSE;
+	ptr_pageTabIt->count = 0;
+
+	//页面老化算法参数更新
+	ptr_pageTabIt->R = 0;
+	for(k = 0; k < 8; k++) {
+		ptr_pageTabIt->counter[k] = 0;
+	}
+
+	printf("页面替换成功\n");
+		
 }
 
 /* 将辅存内容写入实存 */
@@ -311,13 +407,16 @@ void do_print_info()
 {
 	unsigned int i;
 	char str[4];
-	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\n");
+	printf("\n页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问计数\n");
 	for (i = 0; i < PAGE_SUM; i++)
 	{
-		printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\n", i, pageTable[i].blockNum, pageTable[i].filled, 
+		printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\t%d%d%d%d%d%d%d%d\n", i, pageTable[i].blockNum, pageTable[i].filled, 
 			pageTable[i].edited, get_proType_str(str, pageTable[i].proType), 
-			pageTable[i].count, pageTable[i].auxAddr);
+			pageTable[i].count, pageTable[i].auxAddr, 
+			pageTable[i].counter[0], pageTable[i].counter[1], pageTable[i].counter[2], pageTable[i].counter[3],
+			pageTable[i].counter[4], pageTable[i].counter[5], pageTable[i].counter[6], pageTable[i].counter[7]);
 	}
+	printf("\n");
 }
 
 /* 获取页面保护类型字符串 */
