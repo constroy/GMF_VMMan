@@ -508,6 +508,75 @@ void do_print_info()
 	printf("\n");
 }
 
+/* 打印实存 */
+void do_print_shicun()
+{
+       int i=0;
+       int j=0;
+       int m=0;
+	printf("页号\t数据\t\n");
+	for(i=0;i<BLOCK_SUM;i++)
+         {
+             // m=0;
+            if(i<10)
+            {
+	      printf("0%d\t",i);
+            }
+           else 
+             printf("%d\t",i);
+	      for(j=0;j<PAGE_SIZE;j++)
+               {
+                       
+			printf("%c",actMem[m]);
+                         m++;
+	       }
+		printf("\n");
+	}
+}
+/* 打印辅存 */
+void do_print_fucun()
+{
+    BYTE temp[VIRTUAL_MEMORY_SIZE];
+    int i,j,m,k,num;
+	k=fseek(ptr_auxMem, 0, SEEK_SET) ;
+	if (k < 0)   
+	{
+		do_error(ERROR_FILE_SEEK_FAILED);
+		exit(1);
+	}
+
+       num = fread(temp, sizeof(BYTE), VIRTUAL_MEMORY_SIZE, ptr_auxMem);
+	if (num < VIRTUAL_MEMORY_SIZE)
+	{
+		do_error(ERROR_FILE_READ_FAILED);
+		exit(1);
+	}
+	printf("页号\t数据\t\n");
+
+	for(i=0;i<PAGE_SUM;i++)
+	{
+                //m=0;
+               if(i<10)
+		{
+                  printf("0%d\t",i);
+                }
+                else 
+                printf("%d\t",i);
+
+		for(j=0;j<PAGE_SIZE;j++)
+               {
+                       
+			printf("%c",temp[m]);
+                          m++;
+		}
+		printf("\n");
+	}
+
+
+
+}
+
+
 /* 获取页面保护类型字符串 */
 char *get_proType_str(char *str, BYTE type)
 {
@@ -601,6 +670,16 @@ int main(int argc, char* argv[])
 				do_print_info();
 			while (c != '\n')
 				c = getchar();
+                printf("按1打印实存，按其他键不打印...\n");
+		if ((c = getchar()) == '1' || c == '1')
+			do_print_shicun();
+		while (c != '\n')
+			c = getchar();   
+                printf("\n按2打印辅存，按其他键不打印...\n");
+		if ((c = getchar()) == '2' || c == '2')
+			do_print_fucun();
+		while (c != '\n')
+			c = getchar();  
 			printf("按X退出程序，按其他键继续...\n");
 			if ((c = getchar()) == 'x' || c == 'X')
 				break;
