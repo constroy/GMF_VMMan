@@ -7,9 +7,6 @@
 #include <unistd.h>
 #include "vmm.h"
 
-/* 页表 */
-PageTableItem pageTable[PAGE_SUM];
-
 //二级页表
 PageTableItem bi_pageTable[FIRST_TABLE_SIZE][SECOND_TABLE_SIZE];
 
@@ -40,7 +37,7 @@ void do_init()
 		bi_pageTable[firstNum][secondNum].filled = FALSE;
 		bi_pageTable[firstNum][secondNum].edited = FALSE;
 		bi_pageTable[firstNum][secondNum].count = 0;
-
+		bi_pageTable[firstNum][secondNum].ownerID = random() % MAX_PID;
 		//页面老化算法页表项参数初始化
 		bi_pageTable[firstNum][secondNum].R = 0;
 		for(k = 0; k < 8; k++) {
@@ -76,7 +73,7 @@ void do_init()
 void do_response()
 {
 	Ptr_PageTableItem ptr_pageTabIt;
-	unsigned int pageNum, offAddr, firstNum, secondNum;
+	unsigned int offAddr, firstNum, secondNum;
 	unsigned int actAddr;
 	unsigned int i;	
 	int j;	
@@ -110,14 +107,18 @@ void do_response()
 	printf("实地址为：%u\n", actAddr);
 
 	/*每进行一次请求执行均更新页面老化算法访问位*/
-	for(i = 0; i < PAGE_SUM; i++) {
-
+	for(i = 0; i < PAGE_SUM; i++)
+	{
 		firstNum = i / SECOND_TABLE_SIZE;
 		secondNum = i % SECOND_TABLE_SIZE;
-
 		bi_pageTable[firstNum][secondNum].R = 0;
 	}
-	
+	/* 检查process访问权限 */
+	if (ptr_memAccReq->PID != ptr_pageTabIt->ownerID)
+	{
+		do_error(ERROR_NO_AUTHORUTY);
+		return;
+	}
 	/* 检查页面访问权限并处理访存请求 */
 	switch (ptr_memAccReq->reqType)
 	{
@@ -182,7 +183,7 @@ void do_response()
 		firstNum = i / SECOND_TABLE_SIZE;
 		secondNum = i % SECOND_TABLE_SIZE;
 		for(j = 6; j >= 0; j--) {
-			bi_pageTable[firstNum][secondNum].counter[j+1] = pageTable[i].counter[j];
+			bi_pageTable[firstNum][secondNum].counter[j+1] = bi_pageTable[firstNum][secondNum].counter[j];
 		}
 		bi_pageTable[firstNum][secondNum].counter[0] = bi_pageTable[firstNum][secondNum].R;
 	}
@@ -217,8 +218,8 @@ void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 		}
 	}
 	/* 没有空闲物理块，进行页面替换 */
-	do_LFU(ptr_pageTabIt);
-	//do_yemianlaohua(ptr_pageTabIt);
+	//do_LFU(ptr_pageTabIt);
+	do_yemianlaohua(ptr_pageTabIt);
 }
 
 /* 根据LFU算法进行页面替换 */
@@ -293,9 +294,11 @@ void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
 	for (i = 0, page = 0; i < PAGE_SUM; i++)
 	{
 		for(k = 0; k < 8; k++) {
-			if(pageTable[i].counter[k] < min[k]) {
+			firstNum = i / SECOND_TABLE_SIZE;
+			secondNum = i % SECOND_TABLE_SIZE;
+			if (bi_pageTable[firstNum][secondNum].counter[k] < min[k]) {
 				for(j = 0; j < 8; j++) {
-					min[j] = pageTable[i].counter[j]; 
+					min[j] = bi_pageTable[firstNum][secondNum].counter[j]; 
 				}
 				page = i;
 				break;
@@ -405,6 +408,11 @@ void do_error(ERROR_CODE code)
 {
 	switch (code)
 	{
+		case ERROR_NO_AUTHORUTY:
+		{
+			printf("访存失败：该进程没有权限\n");
+			break;
+		}
 		case ERROR_READ_DENY:
 		{
 			printf("访存失败：该地址内容不可读\n");
@@ -476,7 +484,8 @@ void do_print_info()
 		// printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\n", i, pageTable[i].blockNum, pageTable[i].filled, 
 		// 	pageTable[i].edited, get_proType_str(str, pageTable[i].proType), 
 		// 	pageTable[i].count, pageTable[i].auxAddr);
-		printf("%u\t%u\t%u\t%u\t%s\t%lu\t%lu\t%d\t%d%d%d%d%d%d%d%d\n", i, 
+		printf("%u\t%u\t%u\t%u\t%u\t%s\t%lu\t%lu\t%d\t%d%d%d%d%d%d%d%d\n", i, 
+		bi_pageTable[firstNum][secondNum].ownerID,
 		bi_pageTable[firstNum][secondNum].blockNum, 
 		bi_pageTable[firstNum][secondNum].filled,
 		bi_pageTable[firstNum][secondNum].edited, 
