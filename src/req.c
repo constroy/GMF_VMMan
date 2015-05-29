@@ -37,8 +37,9 @@ BOOL do_request()
 {
 	char type[80];
 	int  add,req_value;
+	unsigned int pid;
 	char req_type; 
-	printf("\n选择输入请求模式,random/nonrandom\n");
+	printf("选择输入请求模式,random/nonrandom\n");
 	scanf("%s",type);
 	if(strcmp(type,"random")==0)
 	{
@@ -46,13 +47,14 @@ BOOL do_request()
 		/* 随机产生请求地址 */
 		ptr_memAccReq->virAddr = random() % VIRTUAL_MEMORY_SIZE;
 		/* 随机产生请求类型 */
-		
+		ptr_memAccReq->PID = random()%65536;
+		/* 随机产生请求进程号 */
 		switch (random() % 3)
 		{
 			case 0: //读请求
 			{
 				ptr_memAccReq->reqType = REQUEST_READ;
-				printf("产生请求：\n地址：%lu\t类型：读取\n", ptr_memAccReq->virAddr);
+				printf("产生请求：\n进程号:%u\t地址：%lu\t类型：读取\n",ptr_memAccReq->PID, ptr_memAccReq->virAddr);
 				break;
 			}
 			case 1: //写请求
@@ -60,13 +62,13 @@ BOOL do_request()
 				ptr_memAccReq->reqType = REQUEST_WRITE;
 				/* 随机产生待写入的值 */
 				ptr_memAccReq->value = random() % 0xFFu;
-				printf("产生请求：\n地址：%lu\t类型：写入\t值：%02X\n", ptr_memAccReq->virAddr, ptr_memAccReq->value);
+				printf("产生请求：\n进程号:%u\t地址：%lu\t类型：写入\t值：%02X\n", ptr_memAccReq->PID, ptr_memAccReq->virAddr, ptr_memAccReq->value);
 				break;
 			}
 			case 2:
 			{
 				ptr_memAccReq->reqType = REQUEST_EXECUTE;
-				printf("产生请求：\n地址：%lu\t类型：执行\n", ptr_memAccReq->virAddr);
+				printf("产生请求：\n进程号:%u\t地址：%lu\t类型：执行\n", ptr_memAccReq->PID, ptr_memAccReq->virAddr);
 				break;
 			}
 			default:
@@ -75,19 +77,24 @@ BOOL do_request()
 	}
 	else if(strcmp(type,"nonrandom")==0)
 	{
-		printf("输入请求格式,地址-模式(r,w,e)(-写入值)\n");
-		scanf("%d-%c",&add,&req_type);
+		printf("输入请求格式,进程号-地址-模式(r,w,e)(-写入值)\n");
+		scanf("%u-%d-%c",&pid,&add,&req_type);
+		if(add>=65536){
+		printf("请求PID号超界,请小于%d\n",65536);
+		return FALSE;		
+		}
 		if(add>=VIRTUAL_MEMORY_SIZE){
 		printf("请求地址超界,请小于%d\n",VIRTUAL_MEMORY_SIZE);
 		return FALSE;		
 		}
 		ptr_memAccReq->virAddr=add;
+		ptr_memAccReq->PID=pid;
 		switch (req_type)
 		{
 		case 'r': //读请求
 		{
 			ptr_memAccReq->reqType = REQUEST_READ;
-			printf("产生请求：\n地址：%lu\t类型：读取\n", ptr_memAccReq->virAddr);
+			printf("产生请求：\n进程号:%u\t地址：%lu\t类型：读取\n",ptr_memAccReq->PID, ptr_memAccReq->virAddr);
 			break;
 		}
 		case 'w': //写请求
@@ -101,13 +108,13 @@ BOOL do_request()
 				return FALSE;			
 			}
 			ptr_memAccReq->value=req_value % 0xFFu;
-			printf("产生请求：\n地址：%lu\t类型：写入\t值：%02X\n", ptr_memAccReq->virAddr, ptr_memAccReq->value);
+			printf("产生请求：\n进程号:%u\t地址：%lu\t类型：写入\t值：%02X\n", ptr_memAccReq->PID, ptr_memAccReq->virAddr, ptr_memAccReq->value);
 			break;
 		}
 		case 'e':
 		{
 			ptr_memAccReq->reqType = REQUEST_EXECUTE;
-			printf("产生请求：\n地址：%lu\t类型：执行\n", ptr_memAccReq->virAddr);
+			printf("产生请求：\n进程号:%u\t地址：%lu\t类型：执行\n", ptr_memAccReq->PID, ptr_memAccReq->virAddr);
 			break;
 		}
 		default:
