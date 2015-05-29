@@ -31,7 +31,7 @@ int fifo;
 /* 初始化环境 */
 void do_init()
 {
-	int i, j;
+	int i, j, k;
 	int firstNum, secondNum;
 	srandom(time(NULL));
 
@@ -43,6 +43,12 @@ void do_init()
 			bi_pageTable[p][t].filled = FALSE;
 			bi_pageTable[p][t].edited = FALSE;
 			bi_pageTable[p][t].count = 0;
+
+			//页面老化算法参数初始化
+			pageTable[p][t].R = 0;
+			for(k = 0; k < 8; k++) {
+				pageTable[p][t].counter[k] = 0;
+			}
 			//使用随机数设置该页的保护类型
 			bi_pageTable[p][t].proType = random() % 7 + 1;
 			//设置该页对应的辅存地址 
@@ -65,14 +71,6 @@ void do_init()
 		//设置该页对应的辅存地址 
 		bi_pageTable[firstNum][secondNum].auxAddr = i * PAGE_SIZE;
 	}
-/*		pageTable[i].pageNum = i;
-		pageTable[i].filled = FALSE;
-		pageTable[i].edited = FALSE;
-		pageTable[i].count = 0;
-		 使用随机数设置该页的保护类型 
-		pageTable[i].proType = random() % 7 + 1;
-		 设置该页对应的辅存地址 
-		pageTable[i].auxAddr = i * PAGE_SIZE;*/
 
 	for (j = 0; j < BLOCK_SUM; j++)
 	{
@@ -103,7 +101,9 @@ void do_response()
 	Ptr_PageTableItem ptr_pageTabIt;
 	unsigned int pageNum, offAddr, firstNum, secondNum;
 	unsigned int actAddr;
-	int i, j, k;
+	unsigned int i;	
+	unsigned int j, k;	
+
 	
 	/* 检查地址是否越界 */
 	if (ptr_memAccReq->virAddr < 0 || ptr_memAccReq->virAddr >= VIRTUAL_MEMORY_SIZE)
@@ -145,6 +145,11 @@ void do_response()
 	
 	actAddr = ptr_pageTabIt->blockNum * PAGE_SIZE + offAddr;		//实地址
 	printf("实地址为：%u\n", actAddr);
+
+	/*每进行一次请求执行均更新页面老化算法访问位*/
+	for(i = 0; i < PAGE_SUM; i++) {
+		pageTable[i].R = 0;
+	}
 	
 	/* 检查页面访问权限并处理访存请求 */
 	switch (ptr_memAccReq->reqType)
@@ -157,6 +162,10 @@ void do_response()
 				do_error(ERROR_READ_DENY);
 				return;
 			}
+
+			/*页面老化算法更新访问位及访问计数器*/
+			ptr_pageTabIt->R = 1;
+			
 			/* 读取实存中的内容 */
 			printf("读操作成功：值为%02X\n", actMem[actAddr]);
 			break;
@@ -169,6 +178,10 @@ void do_response()
 				do_error(ERROR_WRITE_DENY);	
 				return;
 			}
+
+			/*页面老化算法更新访问位及访问计数器*/
+			ptr_pageTabIt->R = 1;
+
 			/* 向实存中写入请求的内容 */
 			actMem[actAddr] = ptr_memAccReq->value;
 			ptr_pageTabIt->edited = TRUE;			
@@ -182,7 +195,11 @@ void do_response()
 			{
 				do_error(ERROR_EXECUTE_DENY);
 				return;
-			}			
+			}
+			
+			/*页面老化算法更新访问位及访问计数器*/
+			ptr_pageTabIt->R = 1;
+
 			printf("执行成功\n");
 			break;
 		}
@@ -192,12 +209,23 @@ void do_response()
 			return;
 		}
 	}
+	
+	printf("successful 1");
+	/*每进行一次请求执行均更新页面老化算法访问计数位*/
+	for(i = 0; i < PAGE_SUM; i++) {
+		for(j = 6; j >= 0; j--) {
+			pageTable[i].counter[j+1] = pageTable[i].counter[j];
+		}
+		printf("successful 2");
+		pageTable[i].counter[0] = pageTable[i].R;
+	}
+	printf("successful 3");	
 }
 
 /* 处理缺页中断 */
 void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 {
-	unsigned int i;
+	unsigned int i, k;
 	printf("产生缺页中断，开始进行调页...\n");
 	for (i = 0; i < BLOCK_SUM; i++)
 	{
@@ -211,6 +239,12 @@ void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 			ptr_pageTabIt->filled = TRUE;
 			ptr_pageTabIt->edited = FALSE;
 			ptr_pageTabIt->count = 0;
+
+			//页面老化算法参数更新
+			ptr_pageTabIt->R = 0;
+			for(k = 0; k < 8; k++) {
+				ptr_pageTabIt->counter[k] = 0;
+			}
 			
 			blockStatus[i] = TRUE;
 			return;
@@ -218,6 +252,7 @@ void do_page_fault(Ptr_PageTableItem ptr_pageTabIt)
 	}
 	/* 没有空闲物理块，进行页面替换 */
 	do_LFU(ptr_pageTabIt);
+	//do_yemianlaohua(ptr_pageTabIt);
 }
 
 /* 根据LFU算法进行页面替换 */
@@ -277,6 +312,58 @@ void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 	ptr_pageTabIt->edited = FALSE;
 	ptr_pageTabIt->count = 0;
 	printf("页面替换成功\n");
+}
+
+/* 根据页面老化算法进行页面替换 */
+void do_yemianlaohua(Ptr_PageTableItem ptr_pageTabIt) {
+	
+	unsigned int min[8], i, j, k, page;
+	for(k = 0; k < 8; k++) {
+		min[k] = 1;
+	}
+	printf("没有空闲物理块，开始进行页面老化页面替换...\n");
+
+	for (i = 0, page = 0; i < PAGE_SUM; i++)
+	{
+		for(k = 0; k < 8; k++) {
+			if(pageTable[i].counter[k] < min[k]) {
+				for(j = 0; j < 8; j++) {
+					min[j] = pageTable[i].counter[j]; 
+				}
+				break;
+			}
+		}
+		page = i;
+	}
+	printf("选择第%u页进行替换\n", page);
+
+	if (pageTable[page].edited)
+	{
+		/* 页面内容有修改，需要写回至辅存 */
+		printf("该页内容有修改，写回至辅存\n");
+		do_page_out(&pageTable[page]);
+	}
+	pageTable[page].filled = FALSE;
+	pageTable[page].count = 0;
+
+
+	/* 读辅存内容，写入到实存 */
+	do_page_in(ptr_pageTabIt, pageTable[page].blockNum);
+	
+	/* 更新页表内容 */
+	ptr_pageTabIt->blockNum = pageTable[page].blockNum;
+	ptr_pageTabIt->filled = TRUE;
+	ptr_pageTabIt->edited = FALSE;
+	ptr_pageTabIt->count = 0;
+
+	//页面老化算法参数更新
+	ptr_pageTabIt->R = 0;
+	for(k = 0; k < 8; k++) {
+		ptr_pageTabIt->counter[k] = 0;
+	}
+
+	printf("页面替换成功\n");
+		
 }
 
 /* 将辅存内容写入实存 */
@@ -399,7 +486,7 @@ void do_print_info()
 	unsigned int i;
 	char str[4];
 	int firstNum, secondNum;
-	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\n");
+	printf("页号\t块号\t装入\t修改\t保护\t计数\t辅存\t访问计数\n");
 	for (i = 0; i < PAGE_SUM; i++)
 	{
 		firstNum = i / SECOND_TABLE_SIZE;
@@ -413,8 +500,13 @@ void do_print_info()
 		bi_pageTable[firstNum][secondNum].edited, 
 		get_proType_str(str, bi_pageTable[firstNum][secondNum].proType),
 		bi_pageTable[firstNum][secondNum].count,
-		bi_pageTable[firstNum][secondNum].auxAddr);
+		bi_pageTable[firstNum][secondNum].auxAddr,
+		bi_pageTable[firstNum][secondNum].counter[0], bi_pageTable[firstNum][secondNum].counter[1], 
+		bi_pageTable[firstNum][secondNum].counter[2], bi_pageTable[firstNum][secondNum].counter[3],
+		bi_pageTable[firstNum][secondNum].counter[4], bi_pageTable[firstNum][secondNum].counter[5], 
+		bi_pageTable[firstNum][secondNum].counter[6], bi_pageTable[firstNum][secondNum].counter[7]);
 	}
+	printf("\n");
 }
 
 /* 获取页面保护类型字符串 */
@@ -477,8 +569,8 @@ void init_fifo()
 		exit(1);
 	}
 	
-	/* 在阻塞模式下打开FIFO */
-	if ((fifo = open("/tmp/req", O_RDONLY)) < 0)
+	/* 在非阻塞模式下打开FIFO */
+	if ((fifo = open("/tmp/req", O_RDONLY|O_NONBLOCK)) < 0)
 	{
 		puts("open fifo failed");
 		exit(1);
@@ -501,21 +593,21 @@ int main(int argc, char* argv[])
 	/* 在循环中模拟访存请求与处理过程 */
 	while (TRUE)
 	{
-		do_response();
-		if (read(fifo,ptr_memAccReq,REQ_LEN)<0) {
-			puts("read fifo failed");
-			return 0;
+		//printf("count: %d\n",count);
+		if (read(fifo,ptr_memAccReq,REQ_LEN) == REQ_LEN)
+		{
+			do_response();
+			printf("按Y打印页表，按其他键不打印...\n");
+			if ((c = getchar()) == 'y' || c == 'Y')
+				do_print_info();
+			while (c != '\n')
+				c = getchar();
+			printf("按X退出程序，按其他键继续...\n");
+			if ((c = getchar()) == 'x' || c == 'X')
+				break;
+			while (c != '\n')
+				c = getchar();
 		}
-		printf("按Y打印页表，按其他键不打印...\n");
-		if ((c = getchar()) == 'y' || c == 'Y')
-			do_print_info();
-		while (c != '\n')
-			c = getchar();
-		printf("按X退出程序，按其他键继续...\n");
-		if ((c = getchar()) == 'x' || c == 'X')
-			break;
-		while (c != '\n')
-			c = getchar();
 	}
 	close(fifo);
 	if (fclose(ptr_auxMem) == EOF)
