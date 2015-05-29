@@ -7,9 +7,6 @@
 #include <unistd.h>
 #include "vmm.h"
 
-/* 页表 */
-PageTableItem pageTable[PAGE_SUM];
-
 //二级页表
 PageTableItem bi_pageTable[FIRST_TABLE_SIZE][SECOND_TABLE_SIZE];
 
@@ -94,6 +91,7 @@ void do_response()
 	secondNum = ptr_memAccReq->virAddr / PAGE_SIZE % SECOND_TABLE_SIZE;
 	offAddr = ptr_memAccReq->virAddr % PAGE_SIZE;
 	printf("一级页表页号为：%u\t二级页表页号为：%u\t页内偏移为：%u\n", firstNum, secondNum, offAddr);
+	printf("第%u页\n", firstNum * SECOND_TABLE_SIZE + secondNum);
 
 	/* 获取对应页表项 */
 //	ptr_pageTabIt = &pageTable[pageNum];							//在页表中获取页表项
@@ -182,7 +180,7 @@ void do_response()
 		firstNum = i / SECOND_TABLE_SIZE;
 		secondNum = i % SECOND_TABLE_SIZE;
 		for(j = 6; j >= 0; j--) {
-			bi_pageTable[firstNum][secondNum].counter[j+1] = pageTable[i].counter[j];
+			bi_pageTable[firstNum][secondNum].counter[j+1] = bi_pageTable[firstNum][secondNum].counter[j];
 		}
 		bi_pageTable[firstNum][secondNum].counter[0] = bi_pageTable[firstNum][secondNum].R;
 	}
@@ -292,10 +290,13 @@ void do_pageAging(Ptr_PageTableItem ptr_pageTabIt) {
 
 	for (i = 0, page = 0; i < PAGE_SUM; i++)
 	{
+		firstNum = i / SECOND_TABLE_SIZE;
+		secondNum = i % SECOND_TABLE_SIZE;
+
 		for(k = 0; k < 8; k++) {
-			if(pageTable[i].counter[k] < min[k]) {
+			if(bi_pageTable[firstNum][secondNum].counter[k] < min[k]) {
 				for(j = 0; j < 8; j++) {
-					min[j] = pageTable[i].counter[j]; 
+					min[j] = bi_pageTable[firstNum][secondNum].counter[j]; 
 				}
 				page = i;
 				break;

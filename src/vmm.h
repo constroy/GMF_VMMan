@@ -110,7 +110,7 @@ void do_page_fault(Ptr_PageTableItem);
 void do_LFU(Ptr_PageTableItem);
 
 /*页面老化算法页面替换*/
-void do_yemianlaohua(Ptr_PageTableItem);
+void do_pageAging(Ptr_PageTableItem);
 
 /* 装入页面 */
 void do_page_in(Ptr_PageTableItem, unsigned in);
