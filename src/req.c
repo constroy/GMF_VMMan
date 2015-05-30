@@ -98,7 +98,7 @@ BOOL do_request()
 			ptr_memAccReq->reqType = REQUEST_WRITE;
 			/* 随机产生待写入的值 */
 			//ptr_memAccReq->value = random() % 0xFFu;
-			scanf("-%d",&req_value);
+			scanf("-%X",&req_value);
 			if(req_value>=0xFFu){
 				printf("写入值应小于%02X\n",0xFFu);
 				return FALSE;			
