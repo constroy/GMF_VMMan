@@ -520,13 +520,13 @@ void do_print_shicun()
        int m=0;
 	printf("页号\t数据\t\n");
 	for(i=0;i<BLOCK_SUM;i++)
-         {
+    {
              // m=0;
-            if(i<10)
-            {
+        if(i<10)
+        {
 	      printf("0%d\t",i);
-            }
-           else 
+        }
+        else 
              printf("%d\t",i);
 	      for(j=0;j<PAGE_SIZE;j++)
                {
@@ -541,7 +541,7 @@ void do_print_shicun()
 /* 打印辅存 */
 void do_print_fucun()
 {
-    BYTE temp[VIRTUAL_MEMORY_SIZE];
+    BYTE temp[VIRTUAL_MEMORY_SIZE + 9];
     int i,j,m,k,num;
 	k=fseek(ptr_auxMem, 0, SEEK_SET) ;
 	if (k < 0)   
@@ -557,16 +557,15 @@ void do_print_fucun()
 		exit(1);
 	}
 	printf("页号\t数据\t\n");
-
+	m=0;
 	for(i=0;i<PAGE_SUM;i++)
 	{
-                //m=0;
-               if(i<10)
+	   if(i<10)
 		{
-                  printf("0%d\t",i);
-                }
-                else 
-                printf("%d\t",i);
+		  printf("0%d\t",i);
+		}
+		else 
+		printf("%d\t",i);
 
 		for(j=0;j<PAGE_SIZE;j++)
                {
