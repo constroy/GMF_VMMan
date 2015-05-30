@@ -241,12 +241,11 @@ void do_LFU(Ptr_PageTableItem ptr_pageTabIt)
 		// 	min = pageTable[i].count;
 		// 	page = i;
 		// }
-		if(bi_pageTable[firstNum][secondNum].count < min)
+		if(bi_pageTable[firstNum][secondNum].filled == TRUE && bi_pageTable[firstNum][secondNum].count < min)
 		{
 			min = bi_pageTable[firstNum][secondNum].count;
 			page = i;
 		}
-
 	}
 	printf("选择第%u页进行替换\n", page);
 
@@ -300,18 +299,21 @@ void do_pageAging(Ptr_PageTableItem ptr_pageTabIt) {
 		firstNum = i / SECOND_TABLE_SIZE;
 		secondNum = i % SECOND_TABLE_SIZE;
 
-		for(k = 0; k < 8; k++)
+		if(bi_pageTable[firstNum][secondNum].filled == TRUE)
 		{
-			firstNum = i / SECOND_TABLE_SIZE;
-			secondNum = i % SECOND_TABLE_SIZE;
-			if (bi_pageTable[firstNum][secondNum].counter[k] < min[k])
+			for(k = 0; k < 8; k++)
 			{
-				for(j = 0; j < 8; j++)
+				firstNum = i / SECOND_TABLE_SIZE;
+				secondNum = i % SECOND_TABLE_SIZE;
+				if (bi_pageTable[firstNum][secondNum].counter[k] < min[k])
 				{
-					min[j] = bi_pageTable[firstNum][secondNum].counter[j]; 
+					for(j = 0; j < 8; j++)
+					{
+						min[j] = bi_pageTable[firstNum][secondNum].counter[j]; 
+					}
+					page = i;
+					break;
 				}
-				page = i;
-				break;
 			}
 		}
 	}
